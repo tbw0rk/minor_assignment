@@ -1,26 +1,26 @@
 pipeline {
+    
     tools
     {
-        maven 'maven382'
+        maven 'maven391'
     }
     
   agent any
+  
+  environment
+  {
+      ARTIFACTORY_ACCESS_TOKEN = credentials('artifactory-jenkins--toaccessken')
+  }
+  
   stages {
-
-    stage('SCM') {
-      steps{
-      checkout scm
-      }
-    }
-
     stage('Build') {
       steps {
-        bat 'cd calc && mvn clean install'
+        sh 'cd calc && mvn clean install'
       }
     }
     stage('Test') {
       steps {
-        bat 'cd calc && mvn test'
+        sh 'cd calc && mvn test'
       }
       post {
         always {
@@ -28,13 +28,45 @@ pipeline {
         }
       }
     }
-    stage('SonarQube') {
-      //def mvn = tool 'Default Maven';
-      steps{
-      withSonarQubeEnv('SQ901') {
-        bat "cd calc && mvn sonar:sonar"
-      }
-     }
+    
+    stage('SonarQube Analysis') {
+    //def mvn = tool 'Default Maven';
+    steps{
+    withSonarQubeEnv('SQ901') {
+      sh "cd calc && mvn clean verify sonar:sonar -Dsonar.projectKey=jenkins-test-1 -Dsonar.projectName='jenkins-test-1'"
+    }
     }
   }
+    
+    stage('Artifactory Upload') {
+            steps {
+                // configFileProvider([configFile(fileId: 'artifactory-jenkins-userpass')]) {
+                    sh 'cd calc && mvn clean deploy '
+                // }
+            }
+        }
+        
+
+    stage("docker build and run container")
+    {
+        steps
+        {
+            sh 'docker build -t docker-repo-dev ./calc/'
+            sh 'docker stop docker-repo-jenkins1-dev || true'
+            sh 'docker rm docker-repo-jenkins1-dev || true'
+            sh 'docker run -d -p 4565:8080 --name docker-repo-jenkins1-dev tushar/docker-repo'
+        }
+    }
+    
+    stage("mail alert")
+    {
+        steps
+        {
+            emailext body: 'Test Message',
+            subject: 'Test Subject',
+            to: 'test@example.com'
+        }
+    }
+    
+    }
 }

@@ -9,7 +9,7 @@ pipeline {
   
   environment
   {
-      ARTIFACTORY_ACCESS_TOKEN = credentials('artifactory-jenkins--toaccessken')
+      ARTIFACTORY_ACCESS_TOKEN = credentials('artifactory-jenkins-access-token')
   }
   
   stages {

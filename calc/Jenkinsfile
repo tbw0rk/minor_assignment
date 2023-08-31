@@ -1,0 +1,40 @@
+pipeline {
+    tools
+    {
+        maven 'maven382'
+    }
+    
+  agent any
+  stages {
+
+    stage('SCM') {
+      steps{
+      checkout scm
+      }
+    }
+
+    stage('Build') {
+      steps {
+        bat 'cd calc && mvn clean install'
+      }
+    }
+    stage('Test') {
+      steps {
+        bat 'cd calc && mvn test'
+      }
+      post {
+        always {
+          junit '*/**/*.xml'
+        }
+      }
+    }
+    stage('SonarQube') {
+      //def mvn = tool 'Default Maven';
+      steps{
+      withSonarQubeEnv('SQ901') {
+        bat "cd calc && mvn sonar:sonar"
+      }
+     }
+    }
+  }
+}
